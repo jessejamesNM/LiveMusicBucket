@@ -68,6 +68,3 @@ def upload_image():
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
 
-    except ClientError as e:
-        logger.error(f"Error al subir el archivo a S3: {e}")
-        return None
