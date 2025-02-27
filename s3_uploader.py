@@ -1,3 +1,15 @@
+import os
+import uuid
+import logging
+from pathlib import Path
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+
+# Configuración de credenciales de AWS (NO SUBIR ESTO A GITHUB)
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+BUCKET_NAME = 'mi-aplicacion-imagenes'
+REGION = 'us-east-2'
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -39,13 +51,3 @@ def upload_message_image_to_s3(file_path, user_id):
     except ClientError as e:
         logger.error(f"Error al subir el archivo a S3: {e}")
         return None
-
-# Ejemplo de uso
-if __name__ == "__main__":
-    file_path = "ruta/al/archivo/imagen.jpg"  # Reemplaza con la ruta de tu archivo
-    user_id = "12345"  # Reemplaza con el ID del usuario
-    url = upload_message_image_to_s3(file_path, user_id)
-    if url:
-        print(f"URL del archivo subido: {url}")
-    else:
-        print("Error al subir el archivo.")
