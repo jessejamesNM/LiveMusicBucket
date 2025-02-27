@@ -3,8 +3,10 @@ import uuid
 import logging
 from pathlib import Path
 import boto3
+from google.cloud import firestore
 from botocore.exceptions import NoCredentialsError, ClientError
 from flask import Flask, jsonify, request
+from werkzeug.utils import secure_filename
 
 # Configuración de Flask
 app = Flask(__name__)  # 🔹 Se define la aplicación Flask para Gunicorn
@@ -15,15 +17,19 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 BUCKET_NAME = 'mi-aplicacion-imagenes'
 REGION = 'us-east-2'
 
+# Configuración de Firestore
+db = firestore.Client()
+
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Función para subir imágenes a S3
 def upload_message_image_to_s3(file_path, user_id):
     """
     Sube una imagen a S3 en la carpeta de mensajes del usuario.
     """
-    file_name = f"MessagesImages/{user_id}/{uuid.uuid4()}_{Path(file_path).name}"
+    file_name = f"MessagesImages/{user_id}/{uuid.uuid4()}_{secure_filename(Path(file_path).name)}"
     s3_client = boto3.client(
         's3',
         aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -46,7 +52,19 @@ def upload_message_image_to_s3(file_path, user_id):
         logger.error(f"Error al subir el archivo a S3: {e}")
         return None
 
-# 🔹 Ruta para subir imágenes usando HTTP
+# Función para guardar la URL de la imagen en Firestore
+def save_image_url_to_firestore(user_id, profile_image_url):
+    try:
+        # Obtiene el documento del usuario en Firestore
+        user_ref = db.collection('users').document(user_id)
+
+        # Actualiza la URL de la imagen de perfil
+        user_ref.update({"profileImageUrl": profile_image_url})
+        logger.info("URL de la imagen de perfil actualizada correctamente.")
+    except Exception as e:
+        logger.error(f"Error al actualizar la URL de la imagen en Firestore: {e}")
+
+# Ruta para subir imágenes usando HTTP
 @app.route('/upload', methods=['POST'])
 def upload_image():
     if 'file' not in request.files:
@@ -58,8 +76,13 @@ def upload_image():
     file_path = f"/tmp/{file.filename}"
     file.save(file_path)
     
+    # Subir la imagen a S3
     url = upload_message_image_to_s3(file_path, user_id)
+    
     if url:
+        # Guardar la URL de la imagen en Firestore
+        save_image_url_to_firestore(user_id, url)
+        
         return jsonify({"url": url}), 200
     else:
         return jsonify({"error": "Error al subir la imagen"}), 500
@@ -67,4 +90,3 @@ def upload_image():
 # 🔹 Necesario para ejecutar en Render con Gunicorn
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
-
