@@ -1,11 +1,18 @@
 import os
 import uuid
 import logging
+import json
 from pathlib import Path
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from flask import Flask, jsonify, request
 from werkzeug.utils import secure_filename
+import firebase_admin
+from firebase_admin import credentials, firestore
+from dotenv import load_dotenv
+
+# Cargar las variables de entorno desde el archivo .env
+load_dotenv()
 
 # Configuración de Flask
 app = Flask(__name__)  # 🔹 Se define la aplicación Flask para Gunicorn
@@ -15,6 +22,12 @@ AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 BUCKET_NAME = 'mi-aplicacion-imagenes'
 REGION = 'us-east-2'
+
+# Configuración de Firebase con las credenciales almacenadas como variable de entorno
+firebase_cred = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
+cred = credentials.Certificate(firebase_cred)
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
@@ -41,9 +54,14 @@ def upload_profile_image_to_s3(file, user_id):
         logger.error(f"Error al subir archivo: {e}")
         return None
 
-# Guardar URL en Firestore (simulado)
+# Guardar URL en Firestore
 def save_image_url_to_firestore(user_id, image_url):
     logger.info(f"Guardando URL de imagen en Firestore para user_id {user_id}: {image_url}")
+    user_ref = db.collection('users').document(user_id)
+    user_ref.update({
+        'profileImageUrl': image_url
+    })
+    logger.info("URL guardada correctamente en Firestore")
     return True
 
 # Ruta para subir imágenes de perfil
@@ -146,4 +164,5 @@ def get_work_images():
 # 🔹 Necesario para ejecutar en Render con Gunicorn
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
+
 
