@@ -2,6 +2,10 @@ import os
 import uuid
 import logging
 import json
+from pathlib import Pathimport os
+import uuid
+import logging
+import json
 from pathlib import Path
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
@@ -163,6 +167,5 @@ def get_work_images():
 
 # 🔹 Necesario para ejecutar en Render con Gunicorn
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
-
-
+    port = int(os.environ.get("PORT", 10000))  # Usa el puerto de Render o 10000 por defecto
+    app.run(host='0.0.0.0', port=port)
