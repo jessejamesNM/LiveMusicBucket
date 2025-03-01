@@ -2,7 +2,8 @@ import os
 import uuid
 import logging
 import json
-from pathlib import Pathimport os
+from pathlib import Path  # Línea corregida
+import os  # Línea corregida
 import uuid
 import logging
 import json
