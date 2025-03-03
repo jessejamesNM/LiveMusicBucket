@@ -44,17 +44,13 @@ def get_s3_client():
     )
 
 # Subir imagen a S3
-def upload_message_image_to_s3(uri, user_id):
+def upload_message_image_to_s3(file, user_id):
     # Crear cliente S3
     s3_client = get_s3_client()
 
-    # Obtener el archivo desde la URI (se simula con un archivo temporal en memoria)
+    # Nombre del archivo en S3
     file_name = f"MessagesImages/{user_id}/{uuid.uuid4()}_temp_image_message.jpg"
     
-    # Convertir la URI a un archivo en memoria (simulando el comportamiento en Android con input stream)
-    response = requests.get(uri)
-    file = io.BytesIO(response.content)
-
     # Crear la solicitud de subida a S3
     try:
         s3_client.upload_fileobj(file, BUCKET_NAME, file_name)
@@ -67,21 +63,22 @@ def upload_message_image_to_s3(uri, user_id):
 # Ruta para subir imágenes de mensajes
 @app.route('/upload_message_image', methods=['POST'])
 def upload_message_image():
-    # Obtener los parámetros de la solicitud
-    uri = request.form.get('uri')
+    # Obtener el archivo de la solicitud
+    file = request.files.get('file')
     user_id = request.form.get('user_id', 'default_user')
 
-    # Verificar si se ha proporcionado la URI
-    if not uri:
-        return jsonify({"error": "No se encontró la URI de la imagen"}), 400
+    # Verificar si se ha proporcionado el archivo
+    if not file:
+        return jsonify({"error": "No se encontró el archivo"}), 400
 
     # Subir la imagen a S3
-    url = upload_message_image_to_s3(uri, user_id)
+    url = upload_message_image_to_s3(file, user_id)
 
     if url:
         return jsonify({"url": url}), 200
     else:
         return jsonify({"error": "Error al subir la imagen"}), 500
+
 
 # Subir imagen de perfil a S3
 def upload_profile_image_to_s3(file, user_id):
