@@ -52,7 +52,7 @@ def upload_message_image_to_s3(uri, user_id):
     file_name = f"MessagesImages/{user_id}/{uuid.uuid4()}_temp_image_message.jpg"
     
     # Convertir la URI a un archivo en memoria (simulando el comportamiento en Android con input stream)
-    response = request.get(uri)
+    response = requests.get(uri)
     file = io.BytesIO(response.content)
 
     # Crear la solicitud de subida a S3
@@ -63,6 +63,25 @@ def upload_message_image_to_s3(uri, user_id):
     except (FileNotFoundError, NoCredentialsError, ClientError) as e:
         logger.error(f"Error al subir archivo: {e}")
         return None
+
+# Ruta para subir imágenes de mensajes
+@app.route('/upload_message_image', methods=['POST'])
+def upload_message_image():
+    # Obtener los parámetros de la solicitud
+    uri = request.form.get('uri')
+    user_id = request.form.get('user_id', 'default_user')
+
+    # Verificar si se ha proporcionado la URI
+    if not uri:
+        return jsonify({"error": "No se encontró la URI de la imagen"}), 400
+
+    # Subir la imagen a S3
+    url = upload_message_image_to_s3(uri, user_id)
+
+    if url:
+        return jsonify({"url": url}), 200
+    else:
+        return jsonify({"error": "Error al subir la imagen"}), 500
 
 # Subir imagen de perfil a S3
 def upload_profile_image_to_s3(file, user_id):
